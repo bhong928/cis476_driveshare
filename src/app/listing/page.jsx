@@ -10,9 +10,10 @@ export default function CarListingForm() {
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
   const [mileage, setMileage] = useState('');
-  const [availability, setAvailability] = useState('');
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState('');
+  const [availabilityStart, setAvailabilityStart] = useState('');
+  const [availabilityEnd, setAvailabilityEnd] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -20,7 +21,7 @@ export default function CarListingForm() {
     e.preventDefault();
 
     // Validate that all fields are filled in
-    if (!make || !model || !year || !mileage || !availability || !location || !price) {
+    if (!make || !model || !year || !mileage || !availabilityStart || !availabilityEnd || !location || !price) {
         setErrorMessage("Please fill out all fields.");
         setSuccessMessage("");
         return;
@@ -42,7 +43,8 @@ export default function CarListingForm() {
         model,
         year,
         mileage,
-        availability,
+        availabilityStart,
+        availabilityEnd,
         location,
         price,
         ownerId: user.uid, // Tying the listing to the user
@@ -56,7 +58,8 @@ export default function CarListingForm() {
       setModel('');
       setYear('');
       setMileage('');
-      setAvailability('');
+      setAvailabilityStart('');
+      setAvailabilityEnd('');
       setLocation('');
       setPrice('');
     } catch (error) {
@@ -104,10 +107,17 @@ export default function CarListingForm() {
             className="w-full p-2 mb-4 border rounded"
          />
          <input
-            type="text"
-            value={availability}
-            onChange={(e) => setAvailability(e.target.value)}
-            placeholder="Availability (Dates)"
+            type="date"
+            value={availabilityStart}
+            onChange={(e) => setAvailabilityStart(e.target.value)}
+            placeholder="Availability Start Date"
+            className="w-full p-2 mb-4 border rounded"
+         />
+         <input
+            type="date"
+            value={availabilityEnd}
+            onChange={(e) => setAvailabilityEnd(e.target.value)}
+            placeholder="Availability End Date"
             className="w-full p-2 mb-4 border rounded"
          />
          <input

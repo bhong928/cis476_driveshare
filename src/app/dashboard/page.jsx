@@ -32,6 +32,7 @@ export default function Dashboard() {
   // Fetch listings when user is available
   useEffect(() => {
     if (user) {
+      console.log("Current user UID:", user.uid);
       fetchListings();
     } else {
       setLoading(false);
@@ -40,7 +41,6 @@ export default function Dashboard() {
 
   const fetchListings = async () => {
     try {
-      // Query listings where ownerId equals the current user's UID
       const q = query(
         collection(db, "listings"),
         where("ownerId", "==", user.uid),
@@ -48,6 +48,7 @@ export default function Dashboard() {
       );
       const querySnapshot = await getDocs(q);
       const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log("Fetched listings:", data);
       setListings(data);
     } catch (error) {
       console.error("Error fetching listings: ", error);

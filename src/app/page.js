@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import SearchListings from './search/page';
 
 export default function Home() {
   return (
@@ -22,6 +23,9 @@ export default function Home() {
         <p className="text-lg text-center">
           Navigate using the menu above to log in, create a new listing, or view your dashboard.
         </p>
+      </div>
+      <div className="flex flex-col items-center justify-center">
+      <SearchListings />
       </div>
     </div>
   );
