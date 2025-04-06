@@ -1,89 +1,129 @@
-'use client'
+'use client';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc, } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  where,
+  doc,
+  deleteDoc,
+  updateDoc,
+} from 'firebase/firestore';
+import { db, auth } from '../../lib/firebase';
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Dashboard() {
-    const [listings, setListings] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [editingId, setEditingId] = useState(null);
-    const [ editValues, setEditValues] = useState({});
+  const [user, setUser] = useState(null);
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
 
-    useEffect(() => {
-        fetchListings();
-      }, []);
-    
-      const fetchListings = async () => {
-        try {
-          // Fetch all documents from the "listings" collection ordered by creation date
-          const q = query(collection(db, "listings"), orderBy("createdAt", "desc"));
-          const querySnapshot = await getDocs(q);
-          const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setListings(data);
-        } catch (error) {
-          console.error("Error fetching listings: ", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-    
-      const handleDelete = async (id) => {
-        try {
-          await deleteDoc(doc(db, "listings", id));
-          // Remove the listing from local state
-          setListings(listings.filter(listing => listing.id !== id));
-        } catch (error) {
-          console.error("Error deleting listing: ", error);
-        }
-      };
-    
-      const startEditing = (listing) => {
-        setEditingId(listing.id);
-        setEditValues(listing);
-      };
-    
-      const handleEditChange = (e) => {
-        setEditValues({
-          ...editValues,
-          [e.target.name]: e.target.value,
-        });
-      };
-    
-      const cancelEditing = () => {
-        setEditingId(null);
-        setEditValues({});
-      };
-    
-      const handleUpdate = async (id) => {
-        try {
-          const listingRef = doc(db, "listings", id);
-          await updateDoc(listingRef, editValues);
-          // Update the local state
-          const updatedListings = listings.map(listing =>
-            listing.id === id ? { ...listing, ...editValues } : listing
-          );
-          setListings(updatedListings);
-          setEditingId(null);
-          setEditValues({});
-        } catch (error) {
-          console.error("Error updating listing: ", error);
-        }
-      };
-    
-      if (loading) {
-        return (
-          <div className="flex items-center justify-center min-h-screen">
-            <p>Loading...</p>
-          </div>
-        );
-      }
+  // Listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
+  // Fetch listings when user is available
+  useEffect(() => {
+    if (user) {
+      fetchListings();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchListings = async () => {
+    try {
+      // Query listings where ownerId equals the current user's UID
+      const q = query(
+        collection(db, "listings"),
+        where("ownerId", "==", user.uid),
+        orderBy("createdAt", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setListings(data);
+    } catch (error) {
+      console.error("Error fetching listings: ", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, "listings", id));
+      setListings(listings.filter(listing => listing.id !== id));
+    } catch (error) {
+      console.error("Error deleting listing: ", error);
+    }
+  };
+
+  const startEditing = (listing) => {
+    setEditingId(listing.id);
+    setEditValues(listing);
+  };
+
+  const handleEditChange = (e) => {
+    setEditValues({
+      ...editValues,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const handleUpdate = async (id) => {
+    try {
+      const listingRef = doc(db, "listings", id);
+      await updateDoc(listingRef, editValues);
+      const updatedListings = listings.map(listing =>
+        listing.id === id ? { ...listing, ...editValues } : listing
+      );
+      setListings(updatedListings);
+      setEditingId(null);
+      setEditValues({});
+    } catch (error) {
+      console.error("Error updating listing: ", error);
+    }
+  };
+
+  if (loading) {
     return (
-        <div className="min-h-screen p-4">
-        <h2 className="text-3xl text-center mb-4">My Listings</h2>
-        {listings.length === 0 ? (
-            <p className="text-center">No listings found.</p>
-        ) : (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Please log in to view your listings.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen p-4">
+      <h2 className="text-3xl text-center mb-4">My Listings</h2>
+        <Link href="/listing" className='flex justify-center mb-4'>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded text-center">
+            Create New Listing
+          </button>
+        </Link>
+      {listings.length === 0 ? (
+        <p className="text-center">No listings found.</p>
+      ) : (
         <div className="max-w-4xl mx-auto">
           {listings.map(listing => (
             <div key={listing.id} className="bg-gray-500 p-4 mb-4 shadow rounded">
@@ -178,5 +218,5 @@ export default function Dashboard() {
         </div>
       )}
     </div>
-    )
+  );
 }
