@@ -51,6 +51,9 @@ export default function Login() {
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700">
           {loading ? "Logging in..." : "Log In"}
         </button>
+        <Link href="/forgot-password" className="block text-center mt-4 hover:underline">
+          Forgot Password?
+        </Link>
         <Link href={"/"} className="block text-center mx-auto mt-4 hover:underline">
             Home
         </Link>
