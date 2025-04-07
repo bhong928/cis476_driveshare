@@ -4,6 +4,7 @@ import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
 import Link from 'next/link';
+import CarListingBuilder from "../../lib/CarListingBuilder";
 
 export default function CarListingForm() {
   const [make, setMake] = useState('');
@@ -22,9 +23,9 @@ export default function CarListingForm() {
 
     // Validate that all fields are filled in
     if (!make || !model || !year || !mileage || !availabilityStart || !availabilityEnd || !location || !price) {
-        setErrorMessage("Please fill out all fields.");
-        setSuccessMessage("");
-        return;
+      setErrorMessage("Please fill out all fields.");
+      setSuccessMessage("");
+      return;
     }
       
     // Clear any previous error
@@ -38,19 +39,23 @@ export default function CarListingForm() {
     }
 
     try {
-      const docRef = await addDoc(collection(db, "listings"), {
-        make,
-        model,
-        year,
-        mileage,
-        availabilityStart,
-        availabilityEnd,
-        location,
-        price,
-        ownerId: user.uid, // Tying the listing to the user
-        isBooked: false,
-        createdAt: new Date()
-      });
+      // Use the Builder pattern to construct the car listing object
+      const builder = new CarListingBuilder();
+      const newListing = builder
+        .setMake(make)
+        .setModel(model)
+        .setYear(year)
+        .setMileage(mileage)
+        .setAvailabilityStart(availabilityStart)
+        .setAvailabilityEnd(availabilityEnd)
+        .setLocation(location)
+        .setPrice(price)
+        .setOwnerId(user.uid)
+        .setIsBooked(false)
+        .setCreatedAt(new Date())
+        .build();
+
+      const docRef = await addDoc(collection(db, "listings"), newListing);
       console.log("Listing added with ID: ", docRef.id);
       setSuccessMessage("Listing added successfully!");
 
@@ -138,11 +143,11 @@ export default function CarListingForm() {
          <button type="submit" className="bg-blue-500 text-white p-2 rounded w-full hover:bg-green-800 duration-300">
             Submit
          </button>
-        <Link href={"/dashboard"} className="flex justify-center mt-4">
+         <Link href={"/dashboard"} className="flex justify-center mt-4">
             <button className="bg-blue-500 text-white px-4 py-2 rounded text-center w-full hover:bg-gray-900 duration-300">
                 Dashboard
             </button>
-        </Link>
+         </Link>
       </form>
     </div>
   );

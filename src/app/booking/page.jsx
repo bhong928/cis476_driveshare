@@ -6,6 +6,7 @@ import { collection, addDoc, doc, getDoc, query, where, getDocs, updateDoc } fro
 import { db, auth } from "../../lib/firebase";
 import Link from "next/link";
 import notificationService from "../../lib/notification";
+import uiMediator from "../../lib/uiMediator";  // Mediator implementation
 import PaymentButton from "../../app/components/PaymentButton"; // Ensure correct path
 
 export default function BookingPage() {
@@ -107,6 +108,7 @@ export default function BookingPage() {
       
       await updateDoc(doc(db, "listings", listingId), { isBooked: true });
       
+      // Trigger Observer Pattern notification
       notificationService.notify({
         type: "bookingConfirmed",
         listingId,
@@ -114,6 +116,9 @@ export default function BookingPage() {
         message: "Your booking is confirmed!"
       });
       
+      // Trigger Mediator Pattern notification for the Toast component
+      uiMediator.notify("Toast", "showToast", "Your booking is confirmed!");
+
       // Optionally, navigate to a confirmation page:
       // router.push(`/booking-confirmation?bookingId=${docRef.id}`);
     } catch (error) {
