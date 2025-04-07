@@ -12,7 +12,6 @@ export default function PaymentButton({ amount, bookingId, onPaymentSuccess }) {
     try {
       const result = await paymentProxy.processPayment(amount, bookingId);
       if (result) {
-        // Trigger notifications for both renter and owner
         notificationService.notify({
           type: 'paymentCompleteRenter',
           message: `Payment of $${amount} successful for booking ${bookingId}.`
@@ -32,7 +31,10 @@ export default function PaymentButton({ amount, bookingId, onPaymentSuccess }) {
   };
 
   return (
-    <button onClick={handlePayment} className="bg-purple-600 text-white px-4 py-2 rounded">
+    <button 
+      onClick={handlePayment} 
+      className="block mx-auto bg-purple-600 text-white px-4 py-2 rounded"
+    >
       {loading ? "Processing Payment..." : "Pay Now"}
     </button>
   );

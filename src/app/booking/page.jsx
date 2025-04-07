@@ -124,9 +124,9 @@ export default function BookingPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
+    <div className="flex flex-col items-center min-h-screen p-4 bg-gray-900 text-white space-y-4">
       {listingDetails && (
-        <div className="bg-gray-600 p-4 rounded mb-4">
+        <div className="bg-gray-600 p-4 rounded shadow w-full max-w-md">
           <h3 className="text-xl font-bold mb-2">Car Details</h3>
           <p><strong>Make:</strong> {listingDetails.make}</p>
           <p><strong>Model:</strong> {listingDetails.model}</p>
@@ -139,7 +139,7 @@ export default function BookingPage() {
           </p>
         </div>
       )}
-      <form onSubmit={handleBooking} className="p-6 rounded shadow-md w-full max-w-md bg-gray-500">
+      <form onSubmit={handleBooking} className="p-6 rounded shadow w-full max-w-md bg-gray-500">
         <h2 className="text-2xl mb-4 text-center">Book Listing</h2>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
         {message && <p className="text-green-500 text-center mb-4">{message}</p>}
@@ -171,7 +171,7 @@ export default function BookingPage() {
         </Link>
       </form>
       {bookingId && listingDetails && (
-        <div className="mt-4 bg-gray-500 p-4 rounded shadow-md w-full max-w-md">
+        <div className="bg-gray-500 p-4 rounded shadow w-full max-w-md">
           <p className="text-center text-green-500 mb-2">
             Please complete the payment to confirm your booking.
           </p>
