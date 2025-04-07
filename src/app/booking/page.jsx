@@ -5,22 +5,21 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { collection, addDoc, doc, getDoc, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
 import Link from "next/link";
-import notificationService from "../../lib/notification";  // Observer service
+import notificationService from "../../lib/notification";
+import PaymentButton from "../../app/components/PaymentButton"; // Ensure correct path
 
 export default function BookingPage() {
-  // Get listingId from query parameters
   const searchParams = useSearchParams();
   const router = useRouter();
   const listingId = searchParams.get("listingId");
 
-  // Booking form state
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [listingDetails, setListingDetails] = useState(null);
+  const [bookingId, setBookingId] = useState(null);
 
-  // Fetch listing details when listingId is available
   useEffect(() => {
     const fetchListingDetails = async () => {
       if (listingId) {
@@ -42,7 +41,6 @@ export default function BookingPage() {
   const handleBooking = async (e) => {
     e.preventDefault();
 
-    // Validate that both dates are provided
     if (!startDate || !endDate) {
       setError("Please select both start and end dates.");
       setMessage("");
@@ -54,26 +52,20 @@ export default function BookingPage() {
       return;
     }
 
-    // Convert the dates to Date objects
     const bookingStart = new Date(startDate);
     const bookingEnd = new Date(endDate);
     const availableStart = new Date(listingDetails.availabilityStart);
     const availableEnd = new Date(listingDetails.availabilityEnd);
 
-    // Validate booking period is within the available dates
     if (bookingStart < availableStart || bookingEnd > availableEnd) {
       setError(`Booking dates must be within the available period: from ${listingDetails.availabilityStart} to ${listingDetails.availabilityEnd}.`);
       setMessage("");
       return;
     }
 
-    // Check for overlapping bookings for this listing
     try {
       const bookingsQuerySnapshot = await getDocs(
-        query(
-          collection(db, "bookings"),
-          where("listingId", "==", listingId)
-        )
+        query(collection(db, "bookings"), where("listingId", "==", listingId))
       );
       let overlap = false;
       bookingsQuerySnapshot.forEach((doc) => {
@@ -95,7 +87,6 @@ export default function BookingPage() {
       return;
     }
 
-    // Ensure the user is logged in
     const user = auth.currentUser;
     if (!user) {
       setError("You must be logged in to book a listing.");
@@ -103,7 +94,6 @@ export default function BookingPage() {
     }
     
     try {
-      // Create a new booking document
       const docRef = await addDoc(collection(db, "bookings"), {
         listingId,
         renterId: user.uid,
@@ -111,14 +101,12 @@ export default function BookingPage() {
         endDate,
         createdAt: new Date(),
       });
-      console.log("Booking created with ID:", docRef.id);
-      setMessage("Booking confirmed!");
+      setBookingId(docRef.id);
+      setMessage("Booking confirmed! Please complete the payment.");
       setError("");
       
-      // Mark the listing as booked
       await updateDoc(doc(db, "listings", listingId), { isBooked: true });
       
-      // Notify observers about the booking
       notificationService.notify({
         type: "bookingConfirmed",
         listingId,
@@ -177,11 +165,23 @@ export default function BookingPage() {
           Confirm Booking
         </button>
         <Link href="/" className="flex justify-center mt-4">
-          <button className="bg-green-500 text-white px-4 py-2 rounded text-center">
+          <button className="bg-green-500 text-white px-4 py-2 rounded">
             Home
           </button>
         </Link>
       </form>
+      {bookingId && listingDetails && (
+        <div className="mt-4 bg-gray-500 p-4 rounded shadow-md w-full max-w-md">
+          <p className="text-center text-green-500 mb-2">
+            Please complete the payment to confirm your booking.
+          </p>
+          <PaymentButton 
+            amount={listingDetails.price} 
+            bookingId={bookingId} 
+            onPaymentSuccess={() => console.log("Payment successful!")} 
+          />
+        </div>
+      )}
     </div>
   );
 }
