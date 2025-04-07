@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore"
+import { getFirestore } from "firebase/firestore";
 
 // Your hardcoded Firebase configuration
 const firebaseConfig = {
@@ -25,7 +25,7 @@ if (typeof window !== "undefined") {
   analytics = getAnalytics(app);
 }
 
-// Initialize Firebase Auth
+// Initialize Firebase Auth and Firestore
 const auth = getAuth(app);
 const db = getFirestore(app);
 
