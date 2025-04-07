@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
+import Link from "next/link";
+import notificationService from "../../lib/notification";  // Observer service
 
 export default function BookingPage() {
-  // Get query parameters from the URL (e.g., listingId)
+  // Get listingId from query parameters
   const searchParams = useSearchParams();
   const router = useRouter();
   const listingId = searchParams.get("listingId");
@@ -18,6 +20,7 @@ export default function BookingPage() {
   const [error, setError] = useState("");
   const [listingDetails, setListingDetails] = useState(null);
 
+  // Fetch listing details when listingId is available
   useEffect(() => {
     const fetchListingDetails = async () => {
       if (listingId) {
@@ -39,10 +42,56 @@ export default function BookingPage() {
   const handleBooking = async (e) => {
     e.preventDefault();
 
-    // Basic validation for dates
+    // Validate that both dates are provided
     if (!startDate || !endDate) {
       setError("Please select both start and end dates.");
       setMessage("");
+      return;
+    }
+
+    if (!listingDetails) {
+      setError("Listing details not available for validation.");
+      return;
+    }
+
+    // Convert the dates to Date objects
+    const bookingStart = new Date(startDate);
+    const bookingEnd = new Date(endDate);
+    const availableStart = new Date(listingDetails.availabilityStart);
+    const availableEnd = new Date(listingDetails.availabilityEnd);
+
+    // Validate booking period is within the available dates
+    if (bookingStart < availableStart || bookingEnd > availableEnd) {
+      setError(`Booking dates must be within the available period: from ${listingDetails.availabilityStart} to ${listingDetails.availabilityEnd}.`);
+      setMessage("");
+      return;
+    }
+
+    // Check for overlapping bookings for this listing
+    try {
+      const bookingsQuerySnapshot = await getDocs(
+        query(
+          collection(db, "bookings"),
+          where("listingId", "==", listingId)
+        )
+      );
+      let overlap = false;
+      bookingsQuerySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const existingStart = new Date(data.startDate);
+        const existingEnd = new Date(data.endDate);
+        if (bookingStart <= existingEnd && bookingEnd >= existingStart) {
+          overlap = true;
+        }
+      });
+      if (overlap) {
+        setError("This car is already booked for the selected dates.");
+        setMessage("");
+        return;
+      }
+    } catch (queryError) {
+      console.error("Error checking existing bookings:", queryError);
+      setError("Error verifying availability. Please try again.");
       return;
     }
 
@@ -54,7 +103,7 @@ export default function BookingPage() {
     }
     
     try {
-      // Create a new booking document in the 'bookings' collection
+      // Create a new booking document
       const docRef = await addDoc(collection(db, "bookings"), {
         listingId,
         renterId: user.uid,
@@ -66,7 +115,18 @@ export default function BookingPage() {
       setMessage("Booking confirmed!");
       setError("");
       
-      // Optionally, you could navigate to a confirmation page:
+      // Mark the listing as booked
+      await updateDoc(doc(db, "listings", listingId), { isBooked: true });
+      
+      // Notify observers about the booking
+      notificationService.notify({
+        type: "bookingConfirmed",
+        listingId,
+        renterId: user.uid,
+        message: "Your booking is confirmed!"
+      });
+      
+      // Optionally, navigate to a confirmation page:
       // router.push(`/booking-confirmation?bookingId=${docRef.id}`);
     } catch (error) {
       console.error("Error creating booking:", error);
@@ -86,7 +146,9 @@ export default function BookingPage() {
           <p><strong>Mileage:</strong> {listingDetails.mileage}</p>
           <p><strong>Location:</strong> {listingDetails.location}</p>
           <p><strong>Price:</strong> {listingDetails.price}</p>
-          <p className="mt-2"><strong>Available from:</strong> {listingDetails.availabilityStart} to {listingDetails.availabilityEnd}</p>
+          <p className="mt-2">
+            <strong>Available from:</strong> {listingDetails.availabilityStart} to {listingDetails.availabilityEnd}
+          </p>
         </div>
       )}
       <form onSubmit={handleBooking} className="p-6 rounded shadow-md w-full max-w-md bg-gray-500">
@@ -114,6 +176,11 @@ export default function BookingPage() {
         >
           Confirm Booking
         </button>
+        <Link href="/" className="flex justify-center mt-4">
+          <button className="bg-green-500 text-white px-4 py-2 rounded text-center">
+            Home
+          </button>
+        </Link>
       </form>
     </div>
   );

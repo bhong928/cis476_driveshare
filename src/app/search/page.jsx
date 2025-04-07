@@ -12,15 +12,22 @@ export default function SearchListings() {
   const [maxPrice, setMaxPrice] = useState("");
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("all");
 
-  // Fetch all listings on mount
+  // Fetch all listings on mount (only available listings)
   useEffect(() => {
     const fetchAllListings = async () => {
       setLoading(true);
       try {
-        const q = query(collection(db, "listings"), orderBy("createdAt", "desc"));
+        // Include filter for listings that are not booked
+        const q = query(
+          collection(db, "listings"),
+          where("isBooked", "==", false),
+          orderBy("createdAt", "desc")
+        );
         const querySnapshot = await getDocs(q);
         const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("Fetched listings: ", data);
         setListings(data);
       } catch (error) {
         console.error("Error fetching all listings: ", error);
@@ -34,9 +41,8 @@ export default function SearchListings() {
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const conditions = [];
+      const conditions = [where("isBooked", "==", false)]; // Always only fetch available listings
       if (make) conditions.push(where("make", "==", make));
       if (model) conditions.push(where("model", "==", model));
       if (location) conditions.push(where("location", "==", location));
@@ -57,11 +63,64 @@ export default function SearchListings() {
     }
   };
 
+  // Filter button functions
+  const showAll = () => {
+    setMake("");
+    setModel("");
+    setLocation("");
+    setMaxPrice("");
+    setActiveFilter("all");
+  };
+
+  const filterByMake = () => {
+    setModel("");
+    setLocation("");
+    setMaxPrice("");
+    setActiveFilter("make");
+  };
+
+  const filterByModel = () => {
+    setMake("");
+    setLocation("");
+    setMaxPrice("");
+    setActiveFilter("model");
+  };
+
+  const filterByLocation = () => {
+    setMake("");
+    setModel("");
+    setMaxPrice("");
+    setActiveFilter("location");
+  };
+
+  const filterByPrice = () => {
+    setMake("");
+    setModel("");
+    setLocation("");
+    setActiveFilter("price");
+  };
+
   return (
     <div className="bg-gray-900 text-white w-full flex justify-center p-4">
-      {/* Container for the search form and results */}
       <div className="bg-gray-700 border border-gray-600 rounded p-4 w-full max-w-2xl">
         <h1 className="text-3xl text-center mb-4">Search Listings</h1>
+        <div className="flex space-x-2 mb-4">
+          <button onClick={showAll} className={`px-2 py-1 rounded text-sm ${activeFilter === "all" ? "bg-blue-800" : "bg-blue-600"}`}>
+            Show All
+          </button>
+          <button onClick={filterByMake} className={`px-2 py-1 rounded text-sm ${activeFilter === "make" ? "bg-blue-800" : "bg-blue-600"}`}>
+            Filter by Make
+          </button>
+          <button onClick={filterByModel} className={`px-2 py-1 rounded text-sm ${activeFilter === "model" ? "bg-blue-800" : "bg-blue-600"}`}>
+            Filter by Model
+          </button>
+          <button onClick={filterByLocation} className={`px-2 py-1 rounded text-sm ${activeFilter === "location" ? "bg-blue-800" : "bg-blue-600"}`}>
+            Filter by Location
+          </button>
+          <button onClick={filterByPrice} className={`px-2 py-1 rounded text-sm ${activeFilter === "price" ? "bg-blue-800" : "bg-blue-600"}`}>
+            Filter by Price
+          </button>
+        </div>
         <form onSubmit={handleSearch} className="flex flex-col space-y-4 mb-6">
           <input
             type="text"
@@ -118,6 +177,8 @@ export default function SearchListings() {
                 <p>{listing.location}</p>
                 <p className="font-bold mt-2">Price:</p>
                 <p>{listing.price}</p>
+                <p className="font-bold mt-2">Available from:</p>
+                <p>{listing.availabilityStart} to {listing.availabilityEnd}</p>
                 <Link href={`/booking?listingId=${listing.id}`}>
                   <button className="bg-green-600 text-white px-4 py-2 mt-4 rounded hover:bg-green-700 transition duration-300 w-full">
                     Book Now

@@ -122,6 +122,11 @@ export default function Dashboard() {
             Create New Listing
           </button>
         </Link>
+        <Link href="/" className='flex justify-center mb-4'>
+          <button className="bg-green-500 text-white px-4 py-2 rounded text-center">
+            Home
+          </button>
+        </Link>
       {listings.length === 0 ? (
         <p className="text-center">No listings found.</p>
       ) : (

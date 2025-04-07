@@ -48,6 +48,7 @@ export default function CarListingForm() {
         location,
         price,
         ownerId: user.uid, // Tying the listing to the user
+        isBooked: false,
         createdAt: new Date()
       });
       console.log("Listing added with ID: ", docRef.id);
